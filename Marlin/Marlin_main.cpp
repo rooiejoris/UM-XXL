@@ -131,6 +131,7 @@
 // M150 - Set BlinkM Color Output R: Red<0-255> U(!): Green<0-255> B: Blue<0-255> over i2c, G for green does not work.
 // M190 - Sxxx Wait for bed current temp to reach target temp. Waits only when heating
 //        Rxxx Wait for bed current temp to reach target temp. Waits when heating and cooling
+// M192 - babystepping through buffer M192 <direction><distance>  of  M192 R <direction><steps> D<delay> example M192 Z1 or M192 R X6.2 Y-6.2 D1
 // M200 D<millimeters>- set filament diameter and set E axis units to cubic millimeters (use S0 to set back to millimeters).
 // M201 - Set max acceleration in units/s^2 for print moves (M201 X1000 Y1000)
 // M202 - Set max acceleration in units/s^2 for travel moves (M202 X1000 Y1000) Unused in Marlin!!
@@ -2255,6 +2256,47 @@ void process_commands()
       }
       break;
     #endif //BLINKM
+	case 192: // M192 - Offset coordinates
+	if(code_seen('R'))
+			{
+				int p[3]={0,0,0};
+				for(int8_t i=0; i < 3; i++) 
+				{
+					if(code_seen(axis_codes[i])) p[i] = code_value();
+				}
+				uint8_t d;
+				if(code_seen('D')) d = code_value();
+				SERIAL_ECHOLN("baby..");
+				realTimeStep(p[0],p[1],p[2], d);
+				SERIAL_ECHOLN("..stepped");
+			}
+			else
+			{
+				
+				
+				
+	  if(!code_seen(axis_codes[E_AXIS]))
+		st_synchronize();
+	  for(int8_t i=0; i < NUM_AXIS; i++) {
+		destination[i] = current_position[i];
+		if(code_seen(axis_codes[i])) { 
+		   if(i == E_AXIS) {
+			 current_position[i] -= code_value();  
+			 plan_set_e_position(current_position[E_AXIS]);
+		   }
+		   else {
+			 current_position[i] -= code_value();  
+			 plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+		   }
+		}
+	  }
+	  plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
+	  for(int8_t i=0; i < NUM_AXIS; i++) {
+	    current_position[i] = destination[i];  
+	  }
+	  plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+			}
+	break;
     case 200: // M200 D<millimeters> set filament diameter and set E axis units to cubic millimeters (use S0 to set back to millimeters).
       {
         float area = .0;
