@@ -1306,3 +1306,43 @@ void microstep_readings()
       #endif
 }
 
+void realTimeStep(int x, int y, int z, uint8_t delaytime)
+{
+  bool dir[3];
+  dir[0]=(x>0);
+  dir[1]=(y>0);
+  dir[2]=(z>0);
+  
+  
+  x=abs(x);
+  y=abs(y);
+  z=abs(z);
+  
+  
+  int maxsteps=x;
+  if(y>maxsteps) maxsteps=y;
+  if(z>maxsteps) maxsteps=z;
+  
+  SERIAL_ECHO("ZDir");
+  SERIAL_ECHO(dir[2]?'+':'-');
+  if(maxsteps==0) 
+  {
+    SERIAL_ECHOLN("NOSTEP");
+    return;
+  }
+  for(int i=0;i<maxsteps;i++)
+  {
+    //SERIAL_ECHOLN(".");
+    if(x>i)
+      babystep("X_axis",dir[0]);
+    if(y>i)
+      babystep("Y_axis", dir[1]);
+    if(z>i)
+      babystep("Z_axis", dir[2]);
+        
+    //_delay_us(200);
+      delay(delaytime);
+  }
+}
+
+
